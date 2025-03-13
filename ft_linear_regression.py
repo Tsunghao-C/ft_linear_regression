@@ -73,7 +73,5 @@ def main():
     evaluation(lr, X, y)
 
 
-
-
 if __name__ == "__main__":
     main()
