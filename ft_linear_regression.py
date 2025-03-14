@@ -3,39 +3,52 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class ft_LinearRegressionGD:
-    def __init__(self, learning_rate=0.001, epochs=100):
+    def __init__(self, learning_rate=0.01, epochs=3000):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.theta_0 = 0
         self.theta_1 = 0
-    
-    def fit(self, X, y):
+        self.x_mean = None
+        self.x_std = None
+        self.training_rounds = 0
+
+    def fit(self, X: np.ndarray, y: np.ndarray):
         m = len(X)
 
+        # Normalize X and store scaled factors in the object variable
+        # If you don't normalized X, the number will be too big and unable to converge
+        self.x_mean = np.mean(X)
+        self.x_std = np.std(X)
+        X_scaled = (X - self.x_mean) / self.x_std
+
+        # Gradient descent interations
         for _ in range(self.epochs):
-            gradient_theta_0 = -2 * np.sum(y - self.theta_1 * X + self.theta_0) / m
-            gradient_theta_1 = -2 * np.sum(X * (y - (self.theta_1 * X + self.theta_0))) / m
+            pred = self.theta_0 + self.theta_1 * X_scaled
+            error = y - pred
+            # Loss function (MSE) = np.sum(error ** 2) / m
+            # calculate the gradient of Loss function partial derivitate to "theta_0" and "theta_1" respectively
+            gradient_theta_0 = -2 * np.sum(error) / m
+            gradient_theta_1 = -2 * np.sum(X_scaled * error) / m
 
-            self.theta_0 = self.theta_0 + (self.learning_rate * gradient_theta_0)
-            self.theta_1 = self.theta_1 - (self.learning_rate * gradient_theta_1)
-            # y_pred = self.theta_0 + self.theta_1 * X
-            # error = y_pred - y
+            print("gradient", gradient_theta_0, gradient_theta_1)
 
-            # # Compute gradients
-            # d_theta_0 = np.sum(error) / m
-            # d_theta_1 = np.sum(error * X) / m
-            # print(d_theta_0, d_theta_1)
+            step_theta_0 = gradient_theta_0 * self.learning_rate
+            step_theta_1 = gradient_theta_1 * self.learning_rate
 
-            # # update parameters
-            # self.theta_0 -= self.learning_rate * d_theta_0
-            # self.theta_1 -= self.learning_rate * d_theta_1
-        # mean_x, mean_y = sum(X) / n, sum(y) / n
+            print("step", step_theta_0, step_theta_1)
 
-        # numerator = sum((X[i] - mean_x) * (y[i] - mean_y) for i in range(n))
-        # denominator = sum((X[i] - mean_x) ** 2 for i in range(n))
+            # Update the thetas
+            self.theta_0 -= step_theta_0
+            self.theta_1 -= step_theta_1
 
-        # self.theta_1 = numerator / denominator
-        # self.theta_0 = mean_y - self.theta_1 * mean_x
+            # Stop early if gradient is too small
+            self.training_rounds += 1
+            if abs(gradient_theta_0) < 1e-6 and abs(gradient_theta_1) < 1e-6:
+                break
+        
+        # transform back to unscaled value
+        self.theta_1 /= self.x_std
+        self.theta_0 -= self.theta_1 * self.x_mean
 
     def predict(self, X) -> float:
         if isinstance(X, float | int):
@@ -90,6 +103,7 @@ def main():
     y = df['price']
     lr.fit(X, y)
     print("(theta_0, theta_1):", (lr.theta_0, lr.theta_1))
+    print("Training rounds:", lr.training_rounds)
     with open("constants.txt", 'w') as f:
         f.write("\n".join([str(lr.theta_0), str(lr.theta_1)]))
 
