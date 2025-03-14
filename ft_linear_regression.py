@@ -15,9 +15,10 @@ class ft_LinearRegressionGD:
     
     def search_best_learning_rate(self, X, y):
         lr_candidates = np.logspace(-6, 0, num=self.lr_search_epoch, base=10)
-        print(lr_candidates)
+        # print(lr_candidates)
         best_lr = lr_candidates[0]
         best_loss = float("inf")
+        losses = []
 
         for lr in lr_candidates:
             theta_0, theta_1 = 0, 0 # reset temp_thetas to zero for each lr_candidate
@@ -33,11 +34,13 @@ class ft_LinearRegressionGD:
                 theta_0 -= lr * gradient_theta_0
                 theta_1 -= lr * gradient_theta_1
             
+            losses.append(loss)
             # print(loss)
             if loss < best_loss:
                 best_loss = loss
                 best_lr = lr
         
+        plot_loss_per_lr(lr_candidates, losses)
         print(f"Best learning rate found is: {best_lr}")
         return best_lr
 
@@ -86,6 +89,18 @@ class ft_LinearRegressionGD:
         return np.array(X) * self.theta_1 + self.theta_0
 
 
+def plot_loss_per_lr(lr_candidates: list, losses: list):
+    best_lr = lr_candidates[losses.index(min(losses))]
+    plt.semilogx(lr_candidates, losses, marker='o', label='Loss')
+    plt.axvline(x=best_lr, color='r', linestyle='--', label=f"Best LR: {best_lr:.2e}")  # Highlight best LR
+    plt.xlabel("Learning Rate (Log scaled)")
+    plt.ylabel("Loss (MSE)")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("finding_best_lr.png")
+    plt.close()
+
+
 def plots(lr: ft_LinearRegressionGD, X, y):
     # create regression line data
     lr_x = [x for x in range(30000, 250000, 1000)]
@@ -100,6 +115,7 @@ def plots(lr: ft_LinearRegressionGD, X, y):
     plt.ylabel("Price")
     plt.title("Milage - Price scatter plot")
     plt.savefig("linear_regression.png")
+    plt.close()
     # plt.show()
 
 
