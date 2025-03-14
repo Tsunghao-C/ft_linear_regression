@@ -3,17 +3,48 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class ft_LinearRegressionGD:
-    def __init__(self, learning_rate=0.01, epochs=3000):
+    def __init__(self, learning_rate=0.01, epochs=1000, lr_search_epoch=10):
         self.learning_rate = learning_rate
         self.epochs = epochs
+        self.lr_search_epoch = lr_search_epoch
         self.theta_0 = 0
         self.theta_1 = 0
         self.x_mean = None
         self.x_std = None
         self.training_rounds = 0
+    
+    def search_best_learning_rate(self, X, y):
+        lr_candidates = np.logspace(-6, 0, num=self.lr_search_epoch, base=10)
+        print(lr_candidates)
+        best_lr = lr_candidates[0]
+        best_loss = float("inf")
+
+        for lr in lr_candidates:
+            theta_0, theta_1 = 0, 0 # reset temp_thetas to zero for each lr_candidate
+            m = len(X)
+            for _ in range(30):
+                pred = theta_0 + theta_1 * X
+                error = y - pred
+                loss = np.sum(error ** 2) / m
+
+                gradient_theta_0 = -2 * np.sum(error) / m
+                gradient_theta_1 = -2 * np.sum(X * error) / m
+
+                theta_0 -= lr * gradient_theta_0
+                theta_1 -= lr * gradient_theta_1
+            
+            # print(loss)
+            if loss < best_loss:
+                best_loss = loss
+                best_lr = lr
+        
+        print(f"Best learning rate found is: {best_lr}")
+        return best_lr
+
 
     def fit(self, X: np.ndarray, y: np.ndarray):
         m = len(X)
+        # self.learning_rate /= (1 + decay_factor * self.epochs)
 
         # Normalize X and store scaled factors in the object variable
         # If you don't normalized X, the number will be too big and unable to converge
@@ -21,21 +52,22 @@ class ft_LinearRegressionGD:
         self.x_std = np.std(X)
         X_scaled = (X - self.x_mean) / self.x_std
 
+        # Use the search_best_learning_rate function to find out the best learning rate that coverge fastest
+        # it helps to reduce the total computing efficiency
+        self.learning_rate = self.search_best_learning_rate(X_scaled, y)
+
         # Gradient descent interations
         for _ in range(self.epochs):
             pred = self.theta_0 + self.theta_1 * X_scaled
             error = y - pred
+
             # Loss function (MSE) = np.sum(error ** 2) / m
             # calculate the gradient of Loss function partial derivitate to "theta_0" and "theta_1" respectively
             gradient_theta_0 = -2 * np.sum(error) / m
             gradient_theta_1 = -2 * np.sum(X_scaled * error) / m
 
-            print("gradient", gradient_theta_0, gradient_theta_1)
-
             step_theta_0 = gradient_theta_0 * self.learning_rate
             step_theta_1 = gradient_theta_1 * self.learning_rate
-
-            print("step", step_theta_0, step_theta_1)
 
             # Update the thetas
             self.theta_0 -= step_theta_0
@@ -43,18 +75,15 @@ class ft_LinearRegressionGD:
 
             # Stop early if gradient is too small
             self.training_rounds += 1
-            if abs(gradient_theta_0) < 1e-6 and abs(gradient_theta_1) < 1e-6:
+            if abs(gradient_theta_0) < (self.learning_rate * 1e-3) and abs(gradient_theta_1) < (self.learning_rate * 1e-3):
                 break
         
         # transform back to unscaled value
         self.theta_1 /= self.x_std
         self.theta_0 -= self.theta_1 * self.x_mean
 
-    def predict(self, X) -> float:
-        if isinstance(X, float | int):
-            return self.theta_1 * X + self.theta_0
-        else:
-            return [self.theta_1 * i + self.theta_0 for i in X]
+    def predict(self, X):
+        return np.array(X) * self.theta_1 + self.theta_0
 
 
 def plots(lr: ft_LinearRegressionGD, X, y):
@@ -66,8 +95,8 @@ def plots(lr: ft_LinearRegressionGD, X, y):
     plt.scatter(X, y)
     # Draw regression line
     plt.plot(lr_x, lr_y, color="red")
-    plt.text(130000, 6500, f'y = {lr.theta_0:.4f} {lr.theta_1:.4f} * x', color="red")
-    plt.xlabel("Milage")
+    plt.text(120000, 6500, f'Price = {lr.theta_0:.4f} {lr.theta_1:.4f} x Mileage', color="red")
+    plt.xlabel("Mileage")
     plt.ylabel("Price")
     plt.title("Milage - Price scatter plot")
     plt.savefig("linear_regression.png")
